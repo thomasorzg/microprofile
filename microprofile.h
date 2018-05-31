@@ -416,6 +416,7 @@ extern "C" {
 
 MICROPROFILE_API void MicroProfileInit();
 MICROPROFILE_API void MicroProfileShutdown();
+MICROPROFILE_API void MicroProfileSetThreadLocalCallbacks(void* (*getThreadLocalExt)(), void(*setThreadLocalExt)(void*));
 MICROPROFILE_API MicroProfileToken MicroProfileFindToken(const char* sGroup, const char* sName);
 MICROPROFILE_API MicroProfileToken MicroProfileGetToken(const char* sGroup, const char* sName, uint32_t nColor, MicroProfileTokenType Token);
 MICROPROFILE_API void MicroProfileGetTokenC(MicroProfileToken* pToken, const char* sGroup, const char* sName, uint32_t nColor, MicroProfileTokenType Token);

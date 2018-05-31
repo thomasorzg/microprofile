@@ -1145,25 +1145,61 @@ void MicroProfileShutdown()
 	}
 }
 
+typedef void* (*VptrGetter)();
+typedef void (*VptrSetter)(void*);
+
+static VptrGetter GetThreadLocalExt = nullptr;
+static VptrSetter SetThreadLocalExt = nullptr;
+
+void MicroProfileSetThreadLocalCallbacks(void* (*getThreadLocalExt)(), void(*setThreadLocalExt)(void*))
+{
+	GetThreadLocalExt = getThreadLocalExt;
+	SetThreadLocalExt = setThreadLocalExt;
+}
+
 #ifdef MICROPROFILE_IOS
 inline MicroProfileThreadLog* MicroProfileGetThreadLog()
 {
+	if (GetThreadLocalExt != nullptr)
+	{
+		void* result = (*GetThreadLocalExt)();
+		return (MicroProfileThreadLog*)result;
+	}
+
 	pthread_once(&g_MicroProfileThreadLogKeyOnce, MicroProfileCreateThreadLogKey);
 	return (MicroProfileThreadLog*)pthread_getspecific(g_MicroProfileThreadLogKey);
 }
 
 inline void MicroProfileSetThreadLog(MicroProfileThreadLog* pLog)
 {
+	if (SetThreadLocalExt != nullptr)
+	{
+		(*SetThreadLocalExt)(pLog);
+		return;
+	}
+
 	pthread_once(&g_MicroProfileThreadLogKeyOnce, MicroProfileCreateThreadLogKey);
 	pthread_setspecific(g_MicroProfileThreadLogKey, pLog);
 }
 #else
 MicroProfileThreadLog* MicroProfileGetThreadLog()
 {
+	if (GetThreadLocalExt != nullptr)
+	{
+		void* result = (*GetThreadLocalExt)();
+		return (MicroProfileThreadLog*)result;
+	}
+
 	return g_MicroProfileThreadLogThreadLocal;
 }
 void MicroProfileSetThreadLog(MicroProfileThreadLog* pLog)
 {
+	if (SetThreadLocalExt != nullptr)
+	{
+		(*SetThreadLocalExt)(pLog);
+		return;
+	}
+
 	g_MicroProfileThreadLogThreadLocal = pLog;
 }
 #endif
