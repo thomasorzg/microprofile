@@ -21,7 +21,7 @@
 #define MICROPROFILE_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_GPU_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_GPU_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS 256
-#define MICROPROFILE_STACK_MAX 32
+#define MICROPROFILE_STACK_MAX 64
 #define MICROPROFILE_WEBSOCKET_BUFFER_SIZE (10<<10)
 #define MICROPROFILE_INVALID_TICK ((uint64_t)-1)
 #define MICROPROFILE_INVALID_FRAME ((uint32_t)-1)
@@ -1215,7 +1215,7 @@ MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 		S.nMemUsage += sizeof(MicroProfileThreadLog);
 		pLog->nLogIndex = S.nNumLogs;
 		MP_ASSERT(S.nNumLogs < MICROPROFILE_MAX_THREADS);
-		S.Pool[S.nNumLogs++] = pLog;	
+		S.Pool[S.nNumLogs++] = pLog;
 	}
 	int len = (int)strlen(pName);
 	int maxlen = sizeof(pLog->ThreadName)-1;
