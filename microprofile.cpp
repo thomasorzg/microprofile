@@ -3,7 +3,7 @@
 #if MICROPROFILE_ENABLED
 
 
-
+#include <iostream>
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -21,7 +21,7 @@
 #define MICROPROFILE_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_GPU_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_GPU_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS 256
-#define MICROPROFILE_STACK_MAX 64
+#define MICROPROFILE_STACK_MAX 32
 #define MICROPROFILE_WEBSOCKET_BUFFER_SIZE (10<<10)
 #define MICROPROFILE_INVALID_TICK ((uint64_t)-1)
 #define MICROPROFILE_INVALID_FRAME ((uint32_t)-1)
@@ -751,6 +751,7 @@ namespace
 			uint64_t LogEntry;
 		};
 	};
+    ::std::atomic<::std::uint8_t> maxstacksize{0};
 };
 inline MicroProfileLogEntry MicroProfileMakeLogPayload(const char* pData, uint64_t nSize)
 {
@@ -1215,7 +1216,7 @@ MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 		S.nMemUsage += sizeof(MicroProfileThreadLog);
 		pLog->nLogIndex = S.nNumLogs;
 		MP_ASSERT(S.nNumLogs < MICROPROFILE_MAX_THREADS);
-		S.Pool[S.nNumLogs++] = pLog;
+		S.Pool[S.nNumLogs++] = pLog;	
 	}
 	int len = (int)strlen(pName);
 	int maxlen = sizeof(pLog->ThreadName)-1;
@@ -2533,6 +2534,21 @@ void MicroProfileFlip(void* pContext)
 								pGroupStackPos[nGroup]++;
 								pStackLog[nStackPos] = LE;
 								nStackPos++;
+								{
+									auto tmp = maxstacksize.load(::std::memory_order_relaxed);
+									while (nStackPos > tmp)
+									{
+										if (maxstacksize.compare_exchange_weak(tmp, nStackPos, ::std::memory_order_release, ::std::memory_order_acquire))
+										{
+											::std::cerr << "***Stack size increased to: " << nStackPos << '\n';
+											::std::cerr << "***Stack - oldest to newest:\n";
+											for (int i = 0; i < nStackPos; ++i) {
+												auto const &timer = S.TimerInfo[MicroProfileLogGetTimerIndex(pStackLog[i])];
+												::std::cerr << "   [" << i << "] -> " << timer.pName << '\n';
+											}
+										}
+									}
+								}
 								pChildTickStack[nStackPos] = 0;
 
 							}
