@@ -2528,7 +2528,7 @@ void MicroProfileFlip(void* pContext)
 								MP_ASSERT(nTimer>=0);
 								MP_ASSERT(nTimer < S.nTotalTimers);
 								uint32_t nGroup = pTimerToGroup[nTimer];
-								if ((nStackPos != 0) && ((nStackPos & 0xf) == 0)) {
+								if (nStackPos >= MICROPROFILE_STACK_MAX) {
 									::std::cerr << "***Stack size increased to: " << nStackPos << '\n';
 									::std::cerr << "***Stack - oldest to newest:\n";
 									for (int i = 0; i < nStackPos; ++i) {
