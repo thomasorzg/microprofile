@@ -21,7 +21,7 @@
 #define MICROPROFILE_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_GPU_BUFFER_SIZE ((MICROPROFILE_PER_THREAD_GPU_BUFFER_SIZE)/sizeof(MicroProfileLogEntry))
 #define MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS 256
-#define MICROPROFILE_STACK_MAX 32
+#define MICROPROFILE_STACK_MAX 64
 #define MICROPROFILE_WEBSOCKET_BUFFER_SIZE (10<<10)
 #define MICROPROFILE_INVALID_TICK ((uint64_t)-1)
 #define MICROPROFILE_INVALID_FRAME ((uint32_t)-1)
@@ -2528,6 +2528,14 @@ void MicroProfileFlip(void* pContext)
 								MP_ASSERT(nTimer>=0);
 								MP_ASSERT(nTimer < S.nTotalTimers);
 								uint32_t nGroup = pTimerToGroup[nTimer];
+								if (nStackPos >= MICROPROFILE_STACK_MAX) {
+									::std::cerr << "***Stack size increased to: " << nStackPos << '\n';
+									::std::cerr << "***Stack - oldest to newest:\n";
+									for (int i = 0; i < nStackPos; ++i) {
+										auto const &timer = S.TimerInfo[MicroProfileLogGetTimerIndex(pStackLog[i])];
+										::std::cerr << "   [" << i << "] -> " << timer.pName << '\n';
+									}
+								}
 								MP_ASSERT(nStackPos < MICROPROFILE_STACK_MAX);
 								MP_ASSERT(nGroup < MICROPROFILE_MAX_GROUPS);
 								pGroupStackPos[nGroup]++;
