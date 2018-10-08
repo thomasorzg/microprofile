@@ -751,7 +751,6 @@ namespace
 			uint64_t LogEntry;
 		};
 	};
-    ::std::atomic<::std::uint8_t> maxstacksize{0};
 };
 inline MicroProfileLogEntry MicroProfileMakeLogPayload(const char* pData, uint64_t nSize)
 {
@@ -2529,26 +2528,28 @@ void MicroProfileFlip(void* pContext)
 								MP_ASSERT(nTimer>=0);
 								MP_ASSERT(nTimer < S.nTotalTimers);
 								uint32_t nGroup = pTimerToGroup[nTimer];
+								if ((nStackPos != 0) && ((nStackPos & 0xf) == 0)) {
+									::std::cerr << "***Stack size increased to: " << nStackPos << '\n';
+									::std::cerr << "***Stack - oldest to newest:\n";
+									for (int i = 0; i < nStackPos; ++i) {
+										auto const &timer = S.TimerInfo[MicroProfileLogGetTimerIndex(pStackLog[i])];
+										::std::cerr << "   [" << i << "] -> " << timer.pName << '\n';
+									}
+								}
 								MP_ASSERT(nStackPos < MICROPROFILE_STACK_MAX);
 								MP_ASSERT(nGroup < MICROPROFILE_MAX_GROUPS);
 								pGroupStackPos[nGroup]++;
 								pStackLog[nStackPos] = LE;
-								nStackPos++;
 								{
-									auto tmp = maxstacksize.load(::std::memory_order_relaxed);
-									while (nStackPos > tmp)
-									{
-										if (maxstacksize.compare_exchange_weak(tmp, nStackPos, ::std::memory_order_release, ::std::memory_order_acquire))
-										{
-											::std::cerr << "***Stack size increased to: " << nStackPos << '\n';
-											::std::cerr << "***Stack - oldest to newest:\n";
-											for (int i = 0; i < nStackPos; ++i) {
-												auto const &timer = S.TimerInfo[MicroProfileLogGetTimerIndex(pStackLog[i])];
-												::std::cerr << "   [" << i << "] -> " << timer.pName << '\n';
-											}
+									for (int i = 0; i < nStackPos; ++i) {
+										const auto curidx = MicroProfileGetTimerIndex(pStackLog[i]);
+										if (curidx == nTimer) {
+											::std::cerr << "***Microprofile Recursion Detected: \"" << S.TimerInfo[curidx].pName << "\"\n";
+											break;
 										}
 									}
 								}
+								nStackPos++;
 								pChildTickStack[nStackPos] = 0;
 
 							}
