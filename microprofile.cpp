@@ -3168,12 +3168,13 @@ void MicroProfileDumpFileImmediately(const char* pHtml, const char* pCsv, void* 
 	S.nDumpSpikeMask = 0;
 	S.nDumpFileCountDown = 0;
 
-	MicroProfileDumpToFile();
-	S.nDumpFileNextFrame = 0;
+	// File written on next MicroProfileFlip() call
 }
 
 void MicroProfileDumpFile(const char* pHtml, const char* pCsv, float fCpuSpike, float fGpuSpike)
 {
+	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+
 	S.fDumpCpuSpike = fCpuSpike;
 	S.fDumpGpuSpike = fGpuSpike;
 	uint32_t nDumpMask = 0;
@@ -3205,12 +3206,11 @@ void MicroProfileDumpFile(const char* pHtml, const char* pCsv, float fCpuSpike, 
 	}
 	else
 	{
-		std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
 		S.nDumpFileNextFrame = nDumpMask;
 		S.nDumpSpikeMask = 0;
 		S.nDumpFileCountDown = 0;
 
-		MicroProfileDumpToFile();
+		// File written on next MicroProfileFlip() call
 	}
 }
 
