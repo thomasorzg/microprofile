@@ -2334,8 +2334,6 @@ void MicroProfileFlip(void* pContext)
 		if(0 == S.nDumpFileCountDown)
 		{
 			MicroProfileDumpToFile();
-			S.nDumpFileNextFrame = 0;
-			S.nAutoClearFrames = MICROPROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
 		}
 		else
 		{
@@ -3168,7 +3166,7 @@ void MicroProfileDumpFileImmediately(const char* pHtml, const char* pCsv, void* 
 	S.nDumpSpikeMask = 0;
 	S.nDumpFileCountDown = 0;
 
-	// File written on next MicroProfileFlip() call
+	MicroProfileDumpToFile();
 }
 
 void MicroProfileDumpFile(const char* pHtml, const char* pCsv, float fCpuSpike, float fGpuSpike)
@@ -3210,7 +3208,7 @@ void MicroProfileDumpFile(const char* pHtml, const char* pCsv, float fCpuSpike, 
 		S.nDumpSpikeMask = 0;
 		S.nDumpFileCountDown = 0;
 
-		// File written on next MicroProfileFlip() call
+		MicroProfileDumpToFile();
 	}
 }
 
@@ -4104,6 +4102,8 @@ void MicroProfileDumpToFile()
 			fclose(F);
 		}
 	}
+	S.nDumpFileNextFrame = 0;
+	S.nAutoClearFrames = MICROPROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
 }
 
 void MicroProfileFlushSocket(MpSocket Socket)
