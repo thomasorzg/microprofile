@@ -526,7 +526,7 @@ struct MicroProfileGpuTimerState
 
 struct MicroProfile
 {
-	uint32_t nTotalTimers;
+	std::atomic<uint32_t> nTotalTimers;
 	uint32_t nGroupCount;
 	uint32_t nCategoryCount;
 	uint32_t nAggregateClear;
@@ -1404,18 +1404,25 @@ void MicroProfileInitThreadLog()
 	MicroProfileOnThreadCreate(nullptr);
 }
 
+MicroProfileToken MicroProfileFindTokenInternal(const char* pGroup, const char* pName, uint32_t& searchFrom)
+{
+	uint32_t searchTo = S.nTotalTimers.load(std::memory_order_acquire);
+	for (; searchFrom < searchTo; ++searchFrom)
+	{
+		if (!MP_STRCASECMP(pName, S.TimerInfo[searchFrom].pName) && !MP_STRCASECMP(pGroup, S.GroupInfo[S.TimerToGroup[searchFrom]].pName))
+		{
+			return S.TimerInfo[searchFrom].nToken;
+		}
+	}
+	return MICROPROFILE_INVALID_TOKEN;
+}
+
 MicroProfileToken MicroProfileFindToken(const char* pGroup, const char* pName)
 {
 	MicroProfileInit();
 	MicroProfileScopeLock L(MicroProfileMutex());
-	for(uint32_t i = 0; i < S.nTotalTimers; ++i)
-	{
-		if(!MP_STRCASECMP(pName, S.TimerInfo[i].pName) && !MP_STRCASECMP(pGroup, S.GroupInfo[S.TimerToGroup[i]].pName))
-		{
-			return S.TimerInfo[i].nToken;
-		}
-	}
-	return MICROPROFILE_INVALID_TOKEN;
+	uint32_t index = 0;
+	return MicroProfileFindTokenInternal(pGroup, pName, index);
 }
 
 uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
@@ -1496,12 +1503,19 @@ void MicroProfileRegisterGroup(const char* pGroup, const char* pCategory, uint32
 MicroProfileToken MicroProfileGetToken(const char* pGroup, const char* pName, uint32_t nColor, MicroProfileTokenType Type)
 {
 	MicroProfileInit();
+
+	uint32_t searchIndex = 0;
+	MicroProfileToken ret = MicroProfileFindTokenInternal(pGroup, pName, searchIndex);
+	if (ret != MICROPROFILE_INVALID_TOKEN)
+		return ret;
+
 	MicroProfileScopeLock L(MicroProfileMutex());
-	MicroProfileToken ret = MicroProfileFindToken(pGroup, pName);
+	ret = MicroProfileFindTokenInternal(pGroup, pName, searchIndex);
 	if(ret != MICROPROFILE_INVALID_TOKEN)
 		return ret;
+
 	uint16_t nGroupIndex = MicroProfileGetGroup(pGroup, Type);
-	uint16_t nTimerIndex = (uint16_t)(S.nTotalTimers++);
+	uint16_t nTimerIndex = (uint16_t)(S.nTotalTimers.load(std::memory_order_relaxed));
 	MP_ASSERT(nTimerIndex < MICROPROFILE_MAX_TIMERS);
 
 	uint32_t nBitIndex = nGroupIndex / 32;
@@ -1527,6 +1541,9 @@ MicroProfileToken MicroProfileGetToken(const char* pGroup, const char* pName, ui
 	S.TimerInfo[nTimerIndex].bWSEnabled = false;
 	S.TimerInfo[nTimerIndex].Type = Type;
 	S.TimerToGroup[nTimerIndex] = nGroupIndex;
+
+	// Update this field now that the new entry has been populated.
+	++S.nTotalTimers;
 	return nToken;
 }
 void MicroProfileGetTokenC(MicroProfileToken* pToken, const char* pGroup, const char* pName, uint32_t nColor, MicroProfileTokenType Type)
@@ -3405,8 +3422,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, uint64_t n
 
 	MicroProfileCalcAllTimers(pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
 
-	MicroProfilePrintf(CB, Handle, "\nvar TimerInfo = Array(%d);\n\n", S.nTotalTimers);
-	for(uint32_t i = 0; i < S.nTotalTimers; ++i)
+	MicroProfilePrintf(CB, Handle, "\nvar TimerInfo = Array(%d);\n\n", nNumTimers);
+	for(uint32_t i = 0; i < nNumTimers; ++i)
 	{
 		uint32_t nIdx = i * 2;
 		MP_ASSERT(i == S.TimerInfo[i].nTimerIndex);
