@@ -13408,7 +13408,7 @@ float MicroProfileGetFrameSmallest(MicroProfileToken token) {
 uint32_t MicroProfileGetFrameCount(MicroProfileToken token) {
 	if (token == MICROPROFILE_INVALID_TOKEN)
 	{
-		return 0.f;
+		return 0;
 	}
 
 	uint32_t nTimerIndex = MicroProfileGetTimerIndex(token);
