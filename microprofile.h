@@ -174,7 +174,7 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileGetFrameTime(token) 0.0f // Mojang Added
 #define MicroProfileGetFrameLargest(token) 0.0f // Mojang Added
 #define MicroProfileGetFrameSmallest(token) 0.0f // Mojang Added
-#define MicroProfileGetFrameCount(token) 0.0f // Mojang Added
+#define MicroProfileGetFrameCount(token) 0 // Mojang Added
 #else
 
 #include <stdint.h>
