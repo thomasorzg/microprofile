@@ -4200,7 +4200,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, uint64_t n
 
 	MicroProfileCalcAllTimers(pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
 	
-	MicroProfilePrintf(CB, Handle, "\nvar TimerInfo = Array(%d);\n\n", nNumTimers);
+	MicroProfilePrintf(CB, Handle, "\nS.TimerInfo = Array(%d);\n\n", nNumTimers);
 	for (uint32_t i = 0; i < nNumTimers; ++i)
 	{
 		uint32_t nIdx = i * 2;
