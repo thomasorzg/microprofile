@@ -4,7 +4,7 @@ set(microprofile_source
 	${CMAKE_CURRENT_SOURCE_DIR}/microprofile.h
 	${CMAKE_CURRENT_SOURCE_DIR}/microprofile_html.h
 )
-
+g
 set(CMAKE_POSITION_INDEPENDENT_CODE on)
 add_library(microprofile STATIC ${microprofile_source})
 set_property(TARGET microprofile PROPERTY CXX_STANDARD 11)
